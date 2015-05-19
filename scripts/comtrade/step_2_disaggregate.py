@@ -9,7 +9,6 @@ from os import environ
 from decimal import Decimal, ROUND_HALF_UP
 from ..config import DATA_DIR
 from ..helpers import d, get_file
-from scripts import YEAR
 
 def write(tables, year):
     
@@ -43,6 +42,8 @@ def write(tables, year):
                     new_file_writer.writerow([year, var1, var2, \
                         d(tables[tbl][var1][var2]['val_usd']) ])
 
+@click.command()
+@click.option('-y', '--year', prompt='Year', help='year of the data to convert', required=True)
 def main(year):
     tables = {
         "ypw": defaultdict(lambda: defaultdict(lambda: defaultdict(float)))
@@ -73,7 +74,7 @@ def main(year):
 if __name__ == "__main__":
     start = time.time()
     
-    main(YEAR)
+    main()
     
     total_run_time = (time.time() - start) / 60
     print; print;

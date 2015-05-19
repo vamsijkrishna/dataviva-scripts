@@ -12,7 +12,6 @@ import numpy as np
 from ..config import DATA_DIR
 from ..helpers import get_file
 from ..growth_lib import growth
-from scripts import YEAR, DELETE_PREVIOUS_FILE
 
 ''' Connect to DB '''
 db = MySQLdb.connect(host="localhost", user=environ["DATAVIVA_DB_USER"], 
@@ -106,6 +105,9 @@ def get_wld_proximity(year):
 
     return prox
 
+@click.command()
+@click.option('-y', '--year', prompt='Year', help='year of the data to convert', required=True)
+@click.option('-d', '--delete_previous_file', prompt='Delete Previous File?', default=False)
 def main(year, delete_previous_file):
     
     ypw_file_path = os.path.abspath(os.path.join(DATA_DIR, 'comtrade', year, 'ypw.tsv'))
@@ -191,7 +193,7 @@ def main(year, delete_previous_file):
 if __name__ == "__main__":
     start = time.time()
     
-    main(YEAR, DELETE_PREVIOUS_FILE)
+    main()
     
     total_run_time = (time.time() - start) / 60
     print; print;

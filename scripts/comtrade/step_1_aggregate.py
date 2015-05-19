@@ -3,7 +3,7 @@
     Clean raw SECEX data and output to TSV
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    The script is the first step in adding a new year of SECEX data to the 
+    The script is the first step in adding a new year of COMTRADE data to the 
     database. The script will output 1 bzipped TSV file that can then be 
     consumed by step 2 for created the disaggregate tables.
 
@@ -11,17 +11,16 @@
 
 
 ''' Import statements '''
-import csv, sys, os, argparse, MySQLdb, time, bz2
+import csv, sys, os, argparse, MySQLdb, time, bz2, click
 from collections import defaultdict
 from os import environ
 from decimal import Decimal, ROUND_HALF_UP
 from ..config import DATA_DIR
 from ..helpers import d, get_file
-from scripts import YEAR
 
 ''' Connect to DB '''
-db = MySQLdb.connect(host="localhost", user=environ["DATAVIVA_DB_USER"], 
-                        passwd=environ["DATAVIVA_DB_PW"], 
+db = MySQLdb.connect(host=environ["DATAVIVA_DB_HOST"], user=environ["DATAVIVA_DB_USER"],
+                        passwd=environ["DATAVIVA_DB_PW"],
                         db=environ["DATAVIVA_DB_NAME"])
 db.autocommit(1)
 cursor = db.cursor()
@@ -52,6 +51,9 @@ def get_lookup(type):
         cursor.execute("select id_num, id from attrs_wld where id_num is not null")
         return {r[0]:r[1] for r in cursor.fetchall()}
 
+@click.command()
+# @click.argument('file_path', type=click.Path(), required=False)
+@click.option('-y', '--year', prompt='Year', help='year of the data to convert', required=True)
 def main(year):
     '''Initialize our data dictionaries'''
     ywpw = defaultdict(lambda: defaultdict(lambda: defaultdict(float)))
@@ -177,7 +179,7 @@ def main(year):
 if __name__ == "__main__":
     start = time.time()
     
-    main(YEAR)
+    main()
     
     total_run_time = (time.time() - start) / 60
     print; print;
