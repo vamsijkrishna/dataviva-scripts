@@ -18,3 +18,9 @@ Helper scripts for DataViva data calculations and transformations
  * ```DATAVIVA2_DB_PW```
 * Need unrar tool installed
  * ```brew install unrar```
+
+### Environment Configuration
+Please see the the documtation for getting your environment set up in the  [wiki](https://github.com/DataViva/dataviva-scripts/wiki/Configuration).
+
+### Instructions for Running Scripts
+Please see the documation for how the run the scripts for adding new years of data in the [wiki](https://github.com/DataViva/dataviva-scripts/wiki).
