@@ -5,7 +5,7 @@ Helper scripts for DataViva data calculations and transformations
 
 * ```git clone https://github.com/DataViva/dataviva-scripts.git dataviva-scripts```
 * ```cd dataviva-scripts```
-* ```git submodule update --init --recursive```
+* ```git submodule update --init --recursive``` <- necessary for all product space calcs e.g. rca, distance, opp_gain
 * ```pip install -r requirements.txt ```
 
 ### Caveats
