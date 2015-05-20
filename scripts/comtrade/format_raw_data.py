@@ -5,7 +5,7 @@
     
     Example Usage
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    python scripts/comtrade/format_raw_data.py data/baci/baci92_2013.rar -y 2012
+    python scripts/comtrade/format_raw_data.py data/baci/baci92_2013.rar -y 2013 -o data/comtrade/
 
 """
 
@@ -15,6 +15,7 @@ import pandas as pd
 import numpy as np
 from helpers.import_file import import_file
 from helpers.calc_rca import calc_rca
+from helpers.calc_complexity import calc_complexity
 
 file_path = os.path.dirname(os.path.realpath(__file__))
 ps_calcs_lib_path = os.path.abspath(os.path.join(file_path, "../../../lib/ps_calcs"))
@@ -67,12 +68,12 @@ def main(input_file, year, output_dir):
     '''
         COMPLEXITY
     '''
-    eci, pci = ps_calcs.complexity(ypw_rca_binary)
+    eci, pci = calc_complexity(ypw)
     
     '''
         OPP GAIN
     '''
-    ypw_opp_gain = ps_calcs.opportunity_gain(ypw_rca_binary, ypw_prox, pci)
+    ypw_opp_gain = ps_calcs.opportunity_gain(ypw_rca_binary[pci.index], ypw_prox[pci.index].reindex(pci.index), pci)
     
     '''
         MERGE DATA
@@ -102,6 +103,9 @@ def main(input_file, year, output_dir):
     '''
     new_file_path = os.path.abspath(os.path.join(output_dir, "comtrade_ypw.tsv.bz2"))
     new_ypw.to_csv(bz2.BZ2File(new_file_path, 'wb'), sep="\t", index=False, float_format="%.3f")
+    
+    new_file_path = os.path.abspath(os.path.join(output_dir, "pci.tsv.bz2"))
+    pd.DataFrame(pci, columns=["pci"]).to_csv(bz2.BZ2File(new_file_path, 'wb'), sep="\t", index=True, float_format="%.3f")
     
 
 if __name__ == "__main__":
