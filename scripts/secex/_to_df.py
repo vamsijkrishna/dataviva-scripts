@@ -3,9 +3,10 @@ import rarfile, sys, os, MySQLdb, bz2
 from collections import defaultdict
 
 ''' Connect to DB '''
-db = MySQLdb.connect(host="localhost", user=os.environ["DATAVIVA2_DB_USER"], 
-                        passwd=os.environ["DATAVIVA2_DB_PW"], 
-                        db=os.environ["DATAVIVA2_DB_NAME"])
+db = MySQLdb.connect(host=os.environ.get("DATAVIVA_DB_HOST", "localhost"), 
+                     user=os.environ["DATAVIVA_DB_USER"], 
+                     passwd=os.environ["DATAVIVA_DB_PW"], 
+                     db=os.environ["DATAVIVA_DB_NAME"])
 db.autocommit(1)
 cursor = db.cursor()
 
@@ -92,7 +93,8 @@ def to_df(input_file_path, index=False, debug=False):
     if index:
         index_lookup = {"y":"year", "m":"month", "b":"bra_id", "p":"hs_id", "w":"wld_id"}
         index_cols = [index_lookup[i] for i in index]
-        secex_df = pd.read_csv(input_file, sep="\t", converters={"month":str, "hs_id":str})
+        # secex_df = pd.read_csv(input_file, sep="\t", converters={"month":str, "hs_id":str}, low_memory=False)
+        secex_df = pd.read_csv(input_file, sep="\t", converters={"month":str, "hs_id":str}, engine='python')
         secex_df = secex_df.set_index(index_cols)
     else:
         cols = ["year", "month", "wld_id", "state_id", "customs", "bra_id", \

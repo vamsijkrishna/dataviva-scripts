@@ -4,16 +4,16 @@ import pandas.io.sql as sql
 import numpy as np
 
 file_path = os.path.dirname(os.path.realpath(__file__))
-growth_lib_path = os.path.abspath(os.path.join(file_path, "..", "growth_lib"))
-sys.path.insert(0, growth_lib_path)
-import growth
+ps_calcs_lib_path = os.path.abspath(os.path.join(file_path, "../../", "lib/ps_calcs"))
+sys.path.insert(0, ps_calcs_lib_path)
+import ps_calcs
 
 def get_wld_rcas(geo_level, year, ymbp):
     ''' Connect to DB '''
-    db = MySQLdb.connect(host="localhost", user=os.environ["DATAVIVA_DB_USER"], 
+    db = MySQLdb.connect(host=os.environ["DATAVIVA_DB_HOST"], user=os.environ["DATAVIVA_DB_USER"], 
                             passwd=os.environ["DATAVIVA_DB_PW"], 
                             db=os.environ["DATAVIVA_DB_NAME"])
-    
+        
     def rca(bra_tbl, wld_tbl):
         col_sums = bra_tbl.sum(axis=1)
         col_sums = col_sums.reshape((len(col_sums), 1))
@@ -61,14 +61,14 @@ def get_domestic_rcas(geo_level, year, ymbp, trade_flow):
     ymbp = ymbp[["bra_id", "hs_id", val_col]]
     ymbp = ymbp.pivot(index="bra_id", columns="hs_id", values=val_col).fillna(0)
     
-    rcas = growth.rca(ymbp).fillna(0)
+    rcas = ps_calcs.rca(ymbp).fillna(0)
     rcas[rcas == np.inf] = 0
     
     return rcas
 
 def get_wld_proximity(year):
     ''' Connect to DB '''
-    db = MySQLdb.connect(host="localhost", user=os.environ["DATAVIVA_DB_USER"], 
+    db = MySQLdb.connect(host=os.environ["DATAVIVA_DB_HOST"], user=os.environ["DATAVIVA_DB_USER"], 
                             passwd=os.environ["DATAVIVA_DB_PW"], 
                             db=os.environ["DATAVIVA_DB_NAME"])
 
@@ -82,11 +82,11 @@ def get_wld_proximity(year):
     table = table.fillna(0)
 
     '''Use growth library to run RCA calculation on data'''
-    mcp = growth.rca(table)
+    mcp = ps_calcs.rca(table)
     mcp[mcp >= 1] = 1
     mcp[mcp < 1] = 0
     
-    prox = growth.proximity(mcp)
+    prox = ps_calcs.proximity(mcp)
 
     return prox
 
@@ -130,7 +130,7 @@ def rdo(ymbp, ymp, year, geo_depths):
         
         rcas_wld = get_wld_rcas(geo_level, year, ymbp)
         rcas_wld = rcas_wld.reindex(columns=export_hs)
-        # print rcas_wld.ix["mg"]
+        # print rcas_wld.ix["4"]
         # print rcas_wld['010204']
         # sys.exit()
     
@@ -142,12 +142,13 @@ def rdo(ymbp, ymp, year, geo_depths):
         rcas_wld_binary[rcas_wld_binary >= 1] = 1
         rcas_wld_binary[rcas_wld_binary < 1] = 0
         
+        
         '''
             DISTANCES
         '''
         '''domestic distances'''
-        prox_dom = growth.proximity(rcas_dom_binary)
-        dist_dom = growth.distance(rcas_dom_binary, prox_dom).fillna(0)
+        prox_dom = ps_calcs.proximity(rcas_dom_binary)
+        dist_dom = ps_calcs.distance(rcas_dom_binary, prox_dom).fillna(0)
         
         '''world distances'''
         prox_wld = get_wld_proximity(year)
@@ -157,7 +158,7 @@ def rdo(ymbp, ymp, year, geo_depths):
         prox_wld = prox_wld.reindex(columns=hs_wld, index=hs_wld)
         rcas_wld_binary = rcas_wld_binary.reindex(columns=hs_wld)
         
-        dist_wld = growth.distance(rcas_wld_binary, prox_wld).fillna(0)
+        dist_wld = ps_calcs.distance(rcas_wld_binary, prox_wld).fillna(0)
         
         '''
             OPP GAIN
@@ -181,8 +182,8 @@ def rdo(ymbp, ymp, year, geo_depths):
         prox_wld = prox_wld.reindex(index = all_hs_wld, columns = all_hs_wld)
 
         # print rcas_dom_binary.shape, prox_dom.shape, pcis.shape
-        opp_gain_wld = growth.opportunity_gain(rcas_wld_binary, prox_wld, pcis_wld)
-        opp_gain_dom = growth.opportunity_gain(rcas_dom_binary, prox_dom, pcis_wld)
+        opp_gain_wld = ps_calcs.opportunity_gain(rcas_wld_binary, prox_wld, pcis_wld)
+        opp_gain_dom = ps_calcs.opportunity_gain(rcas_dom_binary, prox_dom, pcis_wld)
         
         '''
             SET RCAS TO NULL
@@ -204,23 +205,33 @@ def rdo(ymbp, ymp, year, geo_depths):
         # print "041601" in set(export_hs).union(set(import_hs))
         # sys.exit()
         
+        ''' Connect to DB '''
+        db = MySQLdb.connect(host=os.environ.get("DATAVIVA_DB_HOST", "localhost"), 
+                             user=os.environ["DATAVIVA_DB_USER"], 
+                             passwd=os.environ["DATAVIVA_DB_PW"], 
+                             db=os.environ["DATAVIVA_DB_NAME"])
+        db.autocommit(1)
+        cursor = db.cursor()
+        
         for bra in set(rcas_dom.index).union(set(rcas_wld.index)):
             for hs in set(export_hs).union(set(import_hs)):
-                rca_dist_opp.append([year, bra, hs, \
-                                tryto(rcas_dom, hs, bra), tryto(rcas_wld, hs, bra), \
-                                tryto(rcd, hs, bra), \
-                                tryto(dist_dom, hs, bra), tryto(dist_wld, hs, bra), \
-                                tryto(opp_gain_dom, hs, bra), tryto(opp_gain_wld, hs, bra) ])
+                cursor.execute("update secex_ymbp set rca_wld=%s, opp_gain_wld=%s, distance_wld=%s where year=%s and month=0 and bra_id=%s and hs_id=%s;",[tryto(rcas_wld, hs, bra), tryto(opp_gain_wld, hs, bra), tryto(dist_wld, hs, bra), year, bra, hs])
+                # rca_dist_opp.append([year, bra, hs, \
+                #                 tryto(rcas_dom, hs, bra), tryto(rcas_wld, hs, bra), \
+                #                 tryto(rcd, hs, bra), \
+                #                 tryto(dist_dom, hs, bra), tryto(dist_wld, hs, bra), \
+                #                 tryto(opp_gain_dom, hs, bra), tryto(opp_gain_wld, hs, bra) ])
         
         # print len(rca_dist_opp), "rows updated"
         
     # now time to merge!
     # print "merging datasets..."
-    ybp_rdo = pd.DataFrame(rca_dist_opp, columns=["year", "bra_id", "hs_id", "rca", "rca_wld", "rcd", "distance", "distance_wld", "opp_gain", "opp_gain_wld"])
-    ybp_rdo["year"] = ybp_rdo["year"].astype("int")
-    ybp_rdo["month"] = "00"
-    ybp_rdo = ybp_rdo.set_index(["year", "month", "bra_id", "hs_id"])
     
-    ymbp = pd.merge(ymbp, ybp_rdo, how="outer", left_index=True, right_index=True)
-    
-    return ymbp
+    # ybp_rdo = pd.DataFrame(rca_dist_opp, columns=["year", "bra_id", "hs_id", "rca", "rca_wld", "rcd", "distance", "distance_wld", "opp_gain", "opp_gain_wld"])
+    # ybp_rdo["year"] = ybp_rdo["year"].astype("int")
+    # ybp_rdo["month"] = "00"
+    # ybp_rdo = ybp_rdo.set_index(["year", "month", "bra_id", "hs_id"])
+    #
+    # ymbp = pd.merge(ymbp, ybp_rdo, how="outer", left_index=True, right_index=True)
+    #
+    # return ymbp

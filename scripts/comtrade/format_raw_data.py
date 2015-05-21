@@ -104,8 +104,11 @@ def main(input_file, year, output_dir):
     new_file_path = os.path.abspath(os.path.join(output_dir, "comtrade_ypw.tsv.bz2"))
     new_ypw.to_csv(bz2.BZ2File(new_file_path, 'wb'), sep="\t", index=False, float_format="%.3f")
     
-    new_file_path = os.path.abspath(os.path.join(output_dir, "pci.tsv.bz2"))
+    new_file_path = os.path.abspath(os.path.join(output_dir, "comtrade_pci.tsv.bz2"))
     pd.DataFrame(pci, columns=["pci"]).to_csv(bz2.BZ2File(new_file_path, 'wb'), sep="\t", index=True, float_format="%.3f")
+    
+    new_file_path = os.path.abspath(os.path.join(output_dir, "comtrade_eci.tsv.bz2"))
+    pd.DataFrame(eci, columns=["eci"]).to_csv(bz2.BZ2File(new_file_path, 'wb'), sep="\t", index=True, float_format="%.3f")
     
 
 if __name__ == "__main__":
