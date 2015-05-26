@@ -2,23 +2,14 @@
 """
     Example Usage
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    python scripts/secex_monthly/format_raw_data.py \
-    data/secex/raw_export/MDIC_2000.rar \
-    data/secex/raw_import/MDIC_2000.rar \
-    -y 2000 \
-    -e data/comtrade/2000/comtrade_eci.tsv.bz2 \
-    -p data/comtrade/2000/comtrade_pci.tsv.bz2 \
-    -r data/comtrade/2000/comtrade_ypw.tsv.bz2 \
-    -o data/secex/2000
-    
-    python scripts/secex_monthly/format_raw_data.py \
-    data/secex/raw_export/MDIC_2001.rar \
-    data/secex/raw_import/MDIC_2001.rar \
-    -y 2001 \
-    -e data/secex/observatory_ecis.csv \
-    -p data/secex/observatory_pcis.csv \
-    -o data/secex/2001 \
-    -g data/secex/2000
+    python scripts/secex/format_raw_data.py \
+    data/secex/raw_export/MDIC_2007.rar \
+    data/secex/raw_import/MDIC_2007.rar \
+    -y 2007 \
+    -e data/comtrade/2007/comtrade_eci.tsv.bz2 \
+    -p data/comtrade/2007/comtrade_pci.tsv.bz2 \
+    -r data/comtrade/2007/comtrade_ypw.tsv.bz2 \
+    -o data/secex/2007
 """
 
 ''' Import statements '''
@@ -39,13 +30,19 @@ from _rdo import rdo
 from _growth import calc_growth
 from _column_lengths import add_column_length
 
+def comtrade_validation(ctx, param, value):
+    try:
+        st = os.stat(value)
+    except OSError:
+        raise click.BadParameter('Path "{}" does not exist. Did you forget to run the COMTRADE scripts for this year?'.format(value))
+
 @click.command()
 @click.argument('export_file_path', type=click.Path(exists=True))
 @click.argument('import_file_path', type=click.Path(exists=True))
 @click.option('-y', '--year', prompt='Year', help='year of the data to convert', required=True)
-@click.option('eci_file_path', '--eci', '-e', help='ECI file.', type=click.Path(exists=True), required=True, prompt="Path to ECI file")
-@click.option('pci_file_path', '--pci', '-p', help='PCI file.', type=click.Path(exists=True), required=True, prompt="Path to PCI file")
-@click.option('ypw_file_path', '--ypw', '-r', help='YPW file.', type=click.Path(exists=True), required=True, prompt="Path to YPW file")
+@click.option('eci_file_path', '--eci', '-e', type=click.Path(), required=True, prompt="Path to ECI file", callback=comtrade_validation)
+@click.option('pci_file_path', '--pci', '-p', type=click.Path(exists=True), required=True, prompt="Path to PCI file", comtrade_validation)
+@click.option('ypw_file_path', '--ypw', '-r', type=click.Path(exists=True), required=True, prompt="Path to YPW file", comtrade_validation)
 @click.option('output_path', '--output', '-o', help='Path to save files to.', type=click.Path(), required=True, prompt="Output path")
 @click.option('prev_path', '--prev', '-g', help='Path to files from the previous year for calculating growth.', type=click.Path(exists=True), required=False)
 @click.option('prev5_path', '--prev5', '-g5', help='Path to files from 5 years ago for calculating growth.', type=click.Path(exists=True), required=False)
