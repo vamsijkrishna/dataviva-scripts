@@ -104,36 +104,11 @@ def main(export_file_path, import_file_path, year, eci_file_path, pci_file_path,
         tables = {"ymb": ymb, "ymp": ymp, "ymw": ymw, "ymbp": ymbp, "ymbpw": ymbpw, "ymbw": ymbw, "ympw": ympw}
         for tbln, tbl in tables.items():
             d[tbln] = tbl
-        
-    if prev_path:
-        step += 1; print '''\nSTEP {0}: \nCalculate 1 year growth'''.format(step)
-        if prev5_path:
-            step += 1; print '''\nSTEP {0}: \nCalculate 5 year growth'''.format(step)
-        for t_name, t in tables.items():
-            print t_name
-            prev_file = os.path.join(prev_path, "{0}.tsv.bz2".format(t_name))
-            t_prev = to_df(prev_file, t_name)
-            t_prev = t_prev.reset_index(level="year")
-            t_prev["year"] = int(year)
-            t_prev = t_prev.set_index("year", append=True)
-            t_prev = t_prev.reorder_levels(["year"] + list(t_prev.index.names)[:-1])
-            
-            t = calc_growth(t, t_prev)
-            
-            if prev5_path:
-                prev_file = os.path.join(prev5_path, "{0}.tsv.bz2".format(t_name))
-                t_prev = to_df(prev_file, t_name)
-                t_prev = t_prev.reset_index(level="year")
-                t_prev["year"] = int(year)
-                t_prev = t_prev.set_index("year", append=True)
-                t_prev = t_prev.reorder_levels(["year"] + list(t_prev.index.names)[:-1])
-                
-                t = calc_growth(t, t_prev, 5)
 
     print "computing column lengths"
     for table_name, table_data in tables.items():
         tables[table_name] = add_column_length(table_name, table_data)
-
+    
     print '''\nFINAL STEP: \nSave files to output path'''
     for t_name, t in tables.items():
         if not os.path.exists(output_path):
