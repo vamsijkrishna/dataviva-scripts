@@ -35,18 +35,17 @@ def comtrade_validation(ctx, param, value):
         st = os.stat(value)
     except OSError:
         raise click.BadParameter('Path "{}" does not exist. Did you forget to run the COMTRADE scripts for this year?'.format(value))
+    return value
 
 @click.command()
 @click.argument('export_file_path', type=click.Path(exists=True))
 @click.argument('import_file_path', type=click.Path(exists=True))
 @click.option('-y', '--year', prompt='Year', help='year of the data to convert', required=True)
 @click.option('eci_file_path', '--eci', '-e', type=click.Path(), required=True, prompt="Path to ECI file", callback=comtrade_validation)
-@click.option('pci_file_path', '--pci', '-p', type=click.Path(exists=True), required=True, prompt="Path to PCI file", comtrade_validation)
-@click.option('ypw_file_path', '--ypw', '-r', type=click.Path(exists=True), required=True, prompt="Path to YPW file", comtrade_validation)
+@click.option('pci_file_path', '--pci', '-p', type=click.Path(), required=True, prompt="Path to PCI file", callback=comtrade_validation)
+@click.option('ypw_file_path', '--ypw', '-r', type=click.Path(), required=True, prompt="Path to YPW file", callback=comtrade_validation)
 @click.option('output_path', '--output', '-o', help='Path to save files to.', type=click.Path(), required=True, prompt="Output path")
-@click.option('prev_path', '--prev', '-g', help='Path to files from the previous year for calculating growth.', type=click.Path(exists=True), required=False)
-@click.option('prev5_path', '--prev5', '-g5', help='Path to files from 5 years ago for calculating growth.', type=click.Path(exists=True), required=False)
-def main(export_file_path, import_file_path, year, eci_file_path, pci_file_path, ypw_file_path, output_path, prev_path, prev5_path):
+def main(export_file_path, import_file_path, year, eci_file_path, pci_file_path, ypw_file_path, output_path):
     start = time.time()
     step = 0
     
